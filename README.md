@@ -1,2 +1,2 @@
-# vardis
-In memory DB. Inspired by Redis
+# Vardis
+In memory key-value store. Inspired by Redis
