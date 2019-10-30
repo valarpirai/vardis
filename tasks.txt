@@ -1,0 +1,17 @@
+https://redis.io/topics/data-types
+https://redis.io/topics/protocol
+
+# Redis like in-memory DB
+- Echo server TCP
+- REdis Serialization Protocol implementation - 6379
+- Start server and use redis-cli - demo
+
+- Networking module
+- In-memory store
+- Read from config file
+- Expiry time for key
+- Persistance
+- Set, Hash, List and other datastructures
+- Single node, MAster-slave, Cluster, Master-slave cluster and Sharding etc.
+- Redis cluster Protocol
+- Test suite
