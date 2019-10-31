@@ -1,17 +1,45 @@
 https://redis.io/topics/data-types
 https://redis.io/topics/protocol
 
+- Package maganer
+
 # Redis like in-memory DB
 - Echo server TCP
 - REdis Serialization Protocol implementation - 6379
 - Start server and use redis-cli - demo
 
 - Networking module
-- In-memory store
-- Read from config file
+- Connection command set
+- Build memory store
 - Expiry time for key
 - Persistance
+- Read config from file
+
 - Set, Hash, List and other datastructures
 - Single node, MAster-slave, Cluster, Master-slave cluster and Sharding etc.
 - Redis cluster Protocol
 - Test suite
+
+
+# Get All commands from redis.io
+redis = {};
+jQuery('#commands li').each(function(index, command) {
+    command = jQuery(command)
+    var group_name = command.data('group')
+    var name = command.data('name').toUpperCase()
+    var args = jQuery('.args', command).text().replace(/\s\s+/g, ' ');
+    if (redis[group_name]) {
+        group = redis[group_name]
+    } else {
+        redis[group_name] = []
+        group = redis[group_name]
+    }
+    comm = {
+        'group': group_name,
+        'name': name,
+        'args': args,
+        'summary': jQuery('.summary', command).text()
+    }
+    group.push(comm)
+})
+JSON.stringify(redis)
