@@ -1,4 +1,4 @@
-package resp
+package proto
 
 // Implemention of RESP (REdis Serialization Protocol)
 // https://redis.io/topics/protocol
