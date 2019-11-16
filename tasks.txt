@@ -4,8 +4,8 @@ https://redis.io/topics/protocol
 - Package maganer
 
 # Redis like in-memory DB
-- Echo server TCP
-- REdis Serialization Protocol implementation - 6379
+- Echo server TCP PORT 6379
+- REdis Serialization Protocol implementation
 - Start server and use redis-cli - demo
 
 - Networking module

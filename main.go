@@ -3,103 +3,50 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"net"
 	"os"
 	"strconv"
 	"strings"
 
+	cache "github.com/valarpirai/vardis/cache"
 	"github.com/valarpirai/vardis/proto"
 )
 
+// type App struct {
+// 	server Server
+// }
+
 func main() {
-	fmt.Printf("hello, world\n")
+	fmt.Printf("Starting Vardis server...\n")
 	arguments := os.Args
-	var PORT string
+	fmt.Println("Arguments...")
+	fmt.Println(arguments)
+	var PORT uint16
 	if len(arguments) > 1 {
-		fmt.Println(arguments)
-		PORT = ":" + arguments[1]
-	} else {
-		PORT = ":6379"
+		port, err := strconv.ParseUint(arguments[1], 10, 16)
+		if nil == err {
+			PORT = uint16(port)
+		}
+	}
+	if 0 == PORT {
+		PORT = 6379
 	}
 
 	reader := bufio.NewReader(strings.NewReader("$6\r\nfoobar\r\n"))
 	result, _ := proto.Decode(reader)
 	fmt.Println(result)
 
-	l, err := net.Listen("tcp4", PORT)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer l.Close()
-	// rand.Seed(time.Now().Unix())
-
-	fmt.Printf("Started echo server on port: %s\n", PORT)
-	for {
-		c, err := l.Accept()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		go handleConnection(c)
-	}
+	server := NewServer(PORT)
+	server.Start()
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-	fmt.Printf("Serving %s\n", conn.RemoteAddr().String())
-	for {
-		// TODO - Read until Command End
-		netData, err := proto.Decode(bufio.NewReader(conn))
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		fmt.Printf("%#v\n", netData)
-		// fmt.Println(netData)
-
-		if netData == "STOP" || netData == "QUIT" {
-			return
-		}
-
-		params, ok := netData.([]interface{})
-		// aString, ok := netData.([]string)
-		// var aString []string
-		var result string
-		if ok {
-			aString := make([]string, len(params))
-			for i, v := range params {
-				aString[i] = v.(string)
-			}
-			fmt.Println("Command Length: " + strconv.Itoa(len(aString)))
-
-			result = processCommands(aString)
-		} else {
-			if params, ok := netData.(string); ok {
-				result = processCommand(params)
-			} else {
-				result = ""
-			}
-		}
-		if 0 == len(result) {
-			conn.Write([]byte(proto.EncodeNull()))
-		} else {
-			conn.Write([]byte(proto.EncodeString(result)))
-		}
-	}
+func New() {
+	cache := cache.NewCache()
+	cache.Exists("Test")
 }
 
-func processCommands(cmd []string) string {
-	if "PING" == cmd[0] {
-		return "+PONG"
+func CheckErrorAndReturnDefault(default_value interface{}, err error) interface{} {
+	if nil == err {
+		return default_value
 	}
-	return ""
-}
-
-func processCommand(cmd string) string {
-	if "PING" == cmd {
-		return "PONG"
-	}
-	return "Test"
+	return nil
 }
