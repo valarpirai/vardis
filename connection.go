@@ -42,9 +42,10 @@ func (s *Server) Start() {
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 	fmt.Printf("Serving %s\n", conn.RemoteAddr().String())
+	reader := bufio.NewReader(conn)
 	for {
 		// Reading Commands and decoding
-		netData, err := proto.Decode(bufio.NewReader(conn))
+		netData, err := proto.Decode(reader)
 		if err != nil {
 			fmt.Println(err)
 			return
