@@ -26,6 +26,13 @@ const (
 	bulkStringMaxLength = 512 * 1024 * 1024
 )
 
+type Request interface {
+	String() string
+	Command() string
+	Key() string
+	Args() []interface{}
+}
+
 // EncodeString encodes a simple string
 func EncodeString(s string) []byte {
 	if strings.ContainsAny(s, crlf) {
@@ -90,6 +97,7 @@ func Decode(reader *bufio.Reader) (result interface{}, err error) {
 		err = fmt.Errorf("invalid CRLF: %#v", line)
 		return
 	}
+
 	msgType, line := string(line[0]), line[1:lineLen-2]
 	switch msgType {
 	case typeSimpleStrings:
@@ -134,7 +142,10 @@ func Decode(reader *bufio.Reader) (result interface{}, err error) {
 		}
 		result = array
 	default:
-		err = fmt.Errorf("invalid RESP type: %#v", msgType)
+		// Default treat as String
+		// fmt.Println(command)
+		result = msgType + line
+		// err = fmt.Errorf("invalid RESP type: %#v", msgType)
 	}
 	return
 }

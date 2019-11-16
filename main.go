@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/valarpirai/vardis/proto"
@@ -55,13 +56,50 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		fmt.Println(netData)
+		fmt.Printf("%#v\n", netData)
+		// fmt.Println(netData)
 
 		if netData == "STOP" || netData == "QUIT" {
 			return
 		}
 
-		result := "Received\n"
-		conn.Write([]byte(result))
+		params, ok := netData.([]interface{})
+		// aString, ok := netData.([]string)
+		// var aString []string
+		var result string
+		if ok {
+			aString := make([]string, len(params))
+			for i, v := range params {
+				aString[i] = v.(string)
+			}
+			fmt.Println("Command Length: " + strconv.Itoa(len(aString)))
+
+			result = processCommands(aString)
+		} else {
+			if params, ok := netData.(string); ok {
+				result = processCommand(params)
+			} else {
+				result = ""
+			}
+		}
+		if 0 == len(result) {
+			conn.Write([]byte(proto.EncodeNull()))
+		} else {
+			conn.Write([]byte(proto.EncodeString(result)))
+		}
 	}
+}
+
+func processCommands(cmd []string) string {
+	if "PING" == cmd[0] {
+		return "+PONG"
+	}
+	return ""
+}
+
+func processCommand(cmd string) string {
+	if "PING" == cmd {
+		return "PONG"
+	}
+	return "Test"
 }
