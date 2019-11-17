@@ -1,6 +1,7 @@
 package proto
 
 // Implemention of RESP (REdis Serialization Protocol)
+// RESP - Serializer and Deserializer
 // https://redis.io/topics/protocol
 
 import (
@@ -145,7 +146,6 @@ func Decode(reader *bufio.Reader) (result interface{}, err error) {
 		// Default treat as String
 		// fmt.Println(command)
 		result = msgType + line
-		// err = fmt.Errorf("invalid RESP type: %#v", msgType)
 	}
 	return
 }

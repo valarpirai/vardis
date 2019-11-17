@@ -1,6 +1,6 @@
 package cache
 
-type cache struct {
+type CacheStorage struct {
 	store map[string]string
 }
 
@@ -11,27 +11,27 @@ type Cache interface {
 }
 
 // New Initialize inmemory cache store
-func NewCache() (ca *cache) {
-	ca = new(cache)
+func NewCache() (ca *CacheStorage) {
+	ca = new(CacheStorage)
 	ca.store = make(map[string]string)
 	return ca
 }
 
-func (c *cache) Set(key string, val string) string {
+func (c *CacheStorage) Set(key string, val string) string {
 	c.store[key] = val
 	return "OK"
 }
 
-func (c *cache) Get(key string) (string, bool) {
+func (c *CacheStorage) Get(key string) (string, bool) {
 	if val, ok := c.store[key]; ok {
 		return val, true
 	}
 	return "", false
 }
 
-func (c *cache) Exists(key string) bool {
+func (c *CacheStorage) Exists(key string) int {
 	if _, ok := c.store[key]; ok {
-		return true
+		return 1
 	}
-	return false
+	return 0
 }

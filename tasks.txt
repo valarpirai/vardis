@@ -10,6 +10,10 @@ https://redis.io/topics/protocol
 
 - Networking module
 - Connection command set
+    - List of commands - allowed commands
+    - Arguments Type/Count validation
+    - Response Type/Format
+    - Treat commands - String and encoded 
 - Build memory store
 - Expiry time for key
 - Persistance

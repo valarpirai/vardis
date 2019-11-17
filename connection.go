@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
+	"github.com/valarpirai/vardis/cache"
 	"github.com/valarpirai/vardis/proto"
 )
 
 type Server struct {
-	PORT uint16
+	PORT  uint16
+	cache *cache.CacheStorage
 }
 
 // NewServer
@@ -85,11 +88,33 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 }
 
-func (s *Server) processCommands(cmd []string) string {
-	if "PING" == cmd[0] {
-		return "+PONG"
+// This method associated with Client connection
+func (s *Server) processCommands(args []string) (result string) {
+	cmd := strings.ToUpper(args[0])
+	fmt.Printf("%#v", cmd)
+	switch cmd {
+	case "PING":
+		result = "PONG"
+	case "SET":
+		key, val := args[1], args[2]
+		result = s.cache.Set(key, val)
+	case "GET":
+		key := args[1]
+		res, ok := s.cache.Get(key)
+		if ok {
+			result = res
+		}
+	case "EXISTS":
+		key := args[1]
+		if 1 == s.cache.Exists(key) {
+			result = "1"
+		} else {
+			result = "0"
+		}
+	default:
+		result = "Command Not Found"
 	}
-	return ""
+	return
 }
 
 func (s *Server) processCommand(cmd string) string {

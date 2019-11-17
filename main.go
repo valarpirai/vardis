@@ -11,16 +11,17 @@ import (
 	"github.com/valarpirai/vardis/proto"
 )
 
-// type App struct {
-// 	server Server
-// }
+type App struct {
+	server Server
+}
+
+var PORT uint16
 
 func main() {
 	fmt.Printf("Starting Vardis server...\n")
 	arguments := os.Args
 	fmt.Println("Arguments...")
 	fmt.Println(arguments)
-	var PORT uint16
 	if len(arguments) > 1 {
 		port, err := strconv.ParseUint(arguments[1], 10, 16)
 		if nil == err {
@@ -35,13 +36,17 @@ func main() {
 	result, _ := proto.Decode(reader)
 	fmt.Println(result)
 
-	server := NewServer(PORT)
-	server.Start()
+	NewApp()
 }
 
-func New() {
+func NewApp() {
 	cache := cache.NewCache()
 	cache.Exists("Test")
+
+	server := NewServer(PORT)
+	server.cache = cache
+
+	server.Start()
 }
 
 func CheckErrorAndReturnDefault(default_value interface{}, err error) interface{} {
