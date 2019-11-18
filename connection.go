@@ -63,7 +63,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 		// Parsing Array of commands
 		params, ok := netData.([]interface{})
-		var result string
+		var result interface{}
 		if ok {
 			aString := make([]string, len(params))
 			for i, v := range params {
@@ -80,16 +80,27 @@ func (s *Server) handleConnection(conn net.Conn) {
 				result = ""
 			}
 		}
-		if 0 == len(result) {
-			conn.Write([]byte(proto.EncodeNull()))
+		str_result, ok := result.(string)
+		var nil_resp bool
+		if ok && 0 < len(str_result) {
+			conn.Write([]byte(proto.EncodeString(str_result)))
+			nil_resp = false
 		} else {
-			conn.Write([]byte(proto.EncodeString(result)))
+			num_result, ok := result.(int)
+			if ok {
+				conn.Write([]byte(proto.EncodeInt(int64(num_result))))
+				nil_resp = false
+			}
+		}
+
+		if nil_resp {
+			conn.Write([]byte(proto.EncodeNull()))
 		}
 	}
 }
 
 // This method associated with Client connection
-func (s *Server) processCommands(args []string) (result string) {
+func (s *Server) processCommands(args []string) (result interface{}) {
 	cmd := strings.ToUpper(args[0])
 	fmt.Printf("%#v", cmd)
 	switch cmd {
@@ -106,11 +117,7 @@ func (s *Server) processCommands(args []string) (result string) {
 		}
 	case "EXISTS":
 		key := args[1]
-		if 1 == s.cache.Exists(key) {
-			result = "1"
-		} else {
-			result = "0"
-		}
+		result = s.cache.Exists(key)
 	default:
 		result = "Command Not Found"
 	}
