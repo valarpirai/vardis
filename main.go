@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	cache "github.com/valarpirai/vardis/cache"
 	"github.com/valarpirai/vardis/proto"
 )
@@ -18,10 +18,12 @@ type App struct {
 var PORT uint16
 
 func main() {
-	fmt.Printf("Starting Vardis server...\n")
+	confgureApp()
+
+	log.Info("Starting Vardis server...\n")
 	arguments := os.Args
-	fmt.Println("Arguments...")
-	fmt.Println(arguments)
+	log.Debug("Arguments...")
+	log.Debug(arguments)
 	if len(arguments) > 1 {
 		port, err := strconv.ParseUint(arguments[1], 10, 16)
 		if nil == err {
@@ -34,7 +36,7 @@ func main() {
 
 	reader := bufio.NewReader(strings.NewReader("$6\r\nfoobar\r\n"))
 	result, _ := proto.Decode(reader)
-	fmt.Println(result)
+	log.Debug(result)
 
 	NewApp()
 }
@@ -44,9 +46,18 @@ func NewApp() {
 	cache.Exists("Test")
 
 	server := NewServer(PORT)
-	server.cache = cache
-
+	server.cache[0] = cache
 	server.Start()
+}
+
+func confgureApp() {
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
+
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
 }
 
 func CheckErrorAndReturnDefault(default_value interface{}, err error) interface{} {

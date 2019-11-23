@@ -144,7 +144,7 @@ func Decode(reader *bufio.Reader) (result interface{}, err error) {
 		result = array
 	default:
 		// Default treat as String
-		// fmt.Println(command)
+		// log.Debugln(command)
 		result = msgType + line
 	}
 	return

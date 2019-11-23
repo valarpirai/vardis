@@ -7,12 +7,20 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/valarpirai/vardis/cache"
 	"github.com/valarpirai/vardis/proto"
 )
 
+const MAX_DB_COUNT = 15
+
 type Server struct {
 	PORT  uint16
+	cache [MAX_DB_COUNT]*cache.CacheStorage
+}
+
+type ClientConnection struct {
+	conn  net.Conn
 	cache *cache.CacheStorage
 }
 
@@ -26,36 +34,40 @@ func NewServer(port uint16) *Server {
 func (s *Server) Start() {
 	l, err := net.Listen("tcp4", ":"+fmt.Sprint(s.PORT))
 	if err != nil {
-		fmt.Println(err)
+		log.Errorln(err)
 		return
 	}
 	defer l.Close()
 
-	fmt.Printf("Started echo server on port: %d\n", s.PORT)
+	log.Infof("Started echo server on port: %d\n", s.PORT)
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			fmt.Println(err)
+			log.Errorln(err)
 			return
 		}
-		go s.handleConnection(c)
+		cc := new(ClientConnection)
+		cc.conn = c
+		cc.cache = s.cache[0]
+		go s.handleConnection(cc)
 	}
 }
 
-func (s *Server) handleConnection(conn net.Conn) {
+func (s *Server) handleConnection(c_conn *ClientConnection) {
+	conn := c_conn.conn
 	defer conn.Close()
-	fmt.Printf("Serving %s\n", conn.RemoteAddr().String())
+	log.Infof("Serving client: %s\n", conn.RemoteAddr().String())
 	reader := bufio.NewReader(conn)
 	for {
 		// Reading Commands and decoding
 		netData, err := proto.Decode(reader)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			return
 		}
 
-		fmt.Printf("%#v\n", netData)
-		// fmt.Println(netData)
+		log.Debugf("%#v\n", netData)
+		// log.Debugln(netData)
 
 		if netData == "STOP" || netData == "QUIT" {
 			return
@@ -69,13 +81,13 @@ func (s *Server) handleConnection(conn net.Conn) {
 			for i, v := range params {
 				aString[i] = v.(string)
 			}
-			fmt.Println("Command Length: " + strconv.Itoa(len(aString)))
+			log.Debug("Command Length: " + strconv.Itoa(len(aString)))
 
-			result = s.processCommands(aString)
+			result = c_conn.processCommands(aString)
 		} else {
 			// Parsing simple commands
 			if params, ok := netData.(string); ok {
-				result = s.processCommand(params)
+				result = c_conn.processCommand(params)
 			} else {
 				result = ""
 			}
@@ -100,9 +112,9 @@ func (s *Server) handleConnection(conn net.Conn) {
 }
 
 // This method associated with Client connection
-func (s *Server) processCommands(args []string) (result interface{}) {
+func (s *ClientConnection) processCommands(args []string) (result interface{}) {
 	cmd := strings.ToUpper(args[0])
-	fmt.Printf("%#v", cmd)
+	log.Debugf("%#v", cmd)
 	switch cmd {
 	case "PING":
 		result = "PONG"
@@ -124,7 +136,7 @@ func (s *Server) processCommands(args []string) (result interface{}) {
 	return
 }
 
-func (s *Server) processCommand(cmd string) string {
+func (s *ClientConnection) processCommand(cmd string) string {
 	if "PING" == cmd {
 		return "PONG"
 	}
