@@ -34,13 +34,74 @@ type Request struct {
 	err  bool
 }
 
+// ********* Request Interface Start ************
+
 type RequestInterface interface {
 	String() string
 	Command() string
 	Key() string
+	Value() string
+	ArgsLength() int
 	Args() []string
 	Error() bool
+	CommandLength() int
 }
+
+func (req *Request) String() string {
+	if req.Error() {
+		return ""
+	}
+	return req.cmd + " " + req.key + " " + strings.Join(req.args, " ")
+}
+
+func (req *Request) Command() string {
+	if req.Error() {
+		return ""
+	}
+	return req.cmd
+}
+
+func (req *Request) Key() string {
+	if req.Error() {
+		return ""
+	}
+	return req.key
+}
+
+func (req *Request) Value() string {
+	if req.Error() || req.ArgsLength() < 1 {
+		return ""
+	}
+	return req.args[0]
+}
+
+func (req *Request) CommandLength() int {
+	if req.Error() {
+		return 0
+	}
+	// TODO - handle if key is nil
+	return 2 + req.ArgsLength()
+}
+
+func (req *Request) ArgsLength() int {
+	if req.Error() || nil == req.Args() {
+		return 0
+	}
+	return len(req.args)
+}
+
+func (req *Request) Args() []string {
+	if req.Error() {
+		return nil
+	}
+	return req.args
+}
+
+func (req *Request) Error() bool {
+	return req.err
+}
+
+// ********* Request Interface End ************
 
 // EncodeString encodes a simple string
 func EncodeString(s string) []byte {

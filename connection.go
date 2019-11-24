@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/valarpirai/vardis/cache"
@@ -78,59 +77,39 @@ func (s *Server) handleConnection(c_conn *ClientConnection) {
 		}
 		log.Debugf("%T\n", netData)
 
-		var result interface{}
-		switch netData.(type) {
-		case []interface{}:
-			// Parsing Array of commands
-			result = c_conn.processCommands(proto.ConvertInterfaceArrToStringArr(netData))
-		case interface{}:
-			result = c_conn.processCommand(netData.(string))
-		default:
-			result = nil
+		if !request.Error() {
+			result := c_conn.processCommands(request)
+			c_conn.resultHandler(result)
+		} else {
+			c_conn.resultHandler(nil)
 		}
 
-		c_conn.resultHandler(result)
 	}
 }
 
 // This method associated with Client connection
-func (s *ClientConnection) processCommands(args []string) (result interface{}) {
-	log.Debug("Command Length: " + strconv.Itoa(len(args)))
-	cmd := strings.ToUpper(args[0])
-	log.Debugf("COMMAND -> %#v", cmd)
-	switch cmd {
+func (s *ClientConnection) processCommands(req proto.RequestInterface) (result interface{}) {
+	log.Debug("Command Length: " + strconv.Itoa(req.CommandLength()))
+	log.Debugf("COMMAND -> %#v", req.Command())
+	switch req.Command() {
 	case "PING":
 		result = "PONG"
 	case "SET":
-		key, val := args[1], args[2]
+		key, val := req.Key(), req.Value()
 		result = s.cache.Set(key, val)
 	case "GET":
-		key := args[1]
+		key := req.Key()
 		res, ok := s.cache.Get(key)
 		if ok {
 			result = res
 		}
 	case "EXISTS":
-		key := args[1]
+		key := req.Key()
 		result = s.cache.Exists(key)
 	default:
 		result = nil
 	}
 	return
-}
-
-func (s *ClientConnection) processCommand(cmd string) interface{} {
-	cmds := strings.Split(cmd, " ")
-	if 1 > len(cmds) {
-		return s.processCommands(cmds)
-	} else if "PING" == cmd {
-		return "PONG"
-	}
-	return commandProcessor()
-}
-
-func commandProcessor() string {
-	return "SUCCESS"
 }
 
 func (s *ClientConnection) resultHandler(result interface{}) {
