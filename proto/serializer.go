@@ -28,10 +28,11 @@ const (
 )
 
 type Request struct {
-	cmd  string
-	key  string
-	args []string
-	err  bool
+	rawCmd string
+	cmd    string
+	key    string
+	args   []string
+	err    bool
 }
 
 // ********* Request Interface Start ************
@@ -47,11 +48,15 @@ type RequestInterface interface {
 	CommandLength() int
 }
 
+func (req *Request) SetRawCommand(cmd string) {
+	req.rawCmd = cmd
+}
+
 func (req *Request) String() string {
 	if req.Error() {
 		return ""
 	}
-	return req.cmd + " " + req.key + " " + strings.Join(req.args, " ")
+	return req.rawCmd
 }
 
 func (req *Request) Command() string {
@@ -153,11 +158,12 @@ func EncodeArray(s [][]byte) []byte {
 }
 
 // Decode decode from reader
-func Decode(reader *bufio.Reader) (result interface{}, err error) {
+func Decode(reader *bufio.Reader) (result interface{}, rawCmd string, err error) {
 	line, err := reader.ReadString('\n')
 	if err != nil {
 		return
 	}
+	rawCmd = line
 	lineLen := len(line)
 	if lineLen < 3 {
 		err = fmt.Errorf(`line is too short: %#v`, line)
@@ -205,10 +211,12 @@ func Decode(reader *bufio.Reader) (result interface{}, err error) {
 		}
 		array := make([]interface{}, length)
 		for i := 0; i < length; i++ {
-			array[i], err = Decode(reader)
+			var raw string
+			array[i], raw, err = Decode(reader)
 			if err != nil {
 				return
 			}
+			rawCmd += raw
 		}
 		result = array
 	default:
@@ -228,17 +236,16 @@ func ParseCommand(cmd interface{}) *Request {
 		args = ConvertInterfaceArrToStringArr(cmd)
 	case interface{}:
 		args = strings.Split(cmd.(string), " ")
-
 	default:
 		request.err = true
 	}
 
-	if request.err == false {
+	if request.Error() == false {
 		argsLen := len(args)
 		if argsLen > 2 {
 			request.cmd = args[0]
 			request.key = args[1]
-			request.args = args[2 : argsLen-1]
+			request.args = args[2:argsLen]
 		} else if argsLen > 1 {
 			request.cmd = args[0]
 			request.key = args[1]

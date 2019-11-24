@@ -60,13 +60,14 @@ func (s *Server) handleConnection(c_conn *ClientConnection) {
 	log.Infof("Serving client: %s\n", conn.RemoteAddr().String())
 	for {
 		// Reading Commands and decoding
-		netData, err := proto.Decode(c_conn.reader)
+		netData, rawCmd, err := proto.Decode(c_conn.reader)
 		if err != nil {
 			log.Error(err)
 			return
 		}
 
 		request := proto.ParseCommand(netData)
+		request.SetRawCommand(rawCmd)
 		log.Debugf("REQEUST -> %#v", request)
 
 		log.Debugf("Full command %#v\n", netData)
@@ -83,7 +84,6 @@ func (s *Server) handleConnection(c_conn *ClientConnection) {
 		} else {
 			c_conn.resultHandler(nil)
 		}
-
 	}
 }
 

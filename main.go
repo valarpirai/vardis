@@ -35,7 +35,7 @@ func main() {
 	}
 
 	reader := bufio.NewReader(strings.NewReader("$6\r\nfoobar\r\n"))
-	result, _ := proto.Decode(reader)
+	result, _, _ := proto.Decode(reader)
 	log.Debug(result)
 
 	NewApp()
