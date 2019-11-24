@@ -27,11 +27,19 @@ const (
 	bulkStringMaxLength = 512 * 1024 * 1024
 )
 
-type Request interface {
+type Request struct {
+	cmd  string
+	key  string
+	args []string
+	err  bool
+}
+
+type RequestInterface interface {
 	String() string
 	Command() string
 	Key() string
-	Args() []interface{}
+	Args() []string
+	Error() bool
 }
 
 // EncodeString encodes a simple string
@@ -146,6 +154,49 @@ func Decode(reader *bufio.Reader) (result interface{}, err error) {
 		// Default treat as String
 		// log.Debugln(command)
 		result = msgType + line
+	}
+	return
+}
+
+func ParseCommand(cmd interface{}) *Request {
+	var request = new(Request)
+	var args []string
+	switch cmd.(type) {
+	case []interface{}:
+		// Parsing Array of commands
+		args = ConvertInterfaceArrToStringArr(cmd)
+	case interface{}:
+		args = strings.Split(cmd.(string), " ")
+
+	default:
+		request.err = true
+	}
+
+	if request.err == false {
+		argsLen := len(args)
+		if argsLen > 2 {
+			request.cmd = args[0]
+			request.key = args[1]
+			request.args = args[2 : argsLen-1]
+		} else if argsLen > 1 {
+			request.cmd = args[0]
+			request.key = args[1]
+		} else {
+			request.cmd = args[0]
+		}
+		request.cmd = strings.ToUpper(request.cmd)
+	}
+	return request
+}
+
+func ConvertInterfaceArrToStringArr(netData interface{}) (aString []string) {
+	params, ok := netData.([]interface{})
+	if !ok {
+		return
+	}
+	aString = make([]string, len(params))
+	for i, v := range params {
+		aString[i] = v.(string)
 	}
 	return
 }

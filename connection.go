@@ -20,8 +20,9 @@ type Server struct {
 }
 
 type ClientConnection struct {
-	conn  net.Conn
-	cache *cache.CacheStorage
+	conn   net.Conn
+	cache  *cache.CacheStorage
+	reader *bufio.Reader
 }
 
 // NewServer
@@ -41,14 +42,15 @@ func (s *Server) Start() {
 
 	log.Infof("Started echo server on port: %d\n", s.PORT)
 	for {
-		c, err := l.Accept()
+		connection, err := l.Accept()
 		if err != nil {
 			log.Errorln(err)
 			return
 		}
 		cc := new(ClientConnection)
-		cc.conn = c
+		cc.conn = connection
 		cc.cache = s.cache[0]
+		cc.reader = bufio.NewReader(connection)
 		go s.handleConnection(cc)
 	}
 }
@@ -57,64 +59,45 @@ func (s *Server) handleConnection(c_conn *ClientConnection) {
 	conn := c_conn.conn
 	defer conn.Close()
 	log.Infof("Serving client: %s\n", conn.RemoteAddr().String())
-	reader := bufio.NewReader(conn)
 	for {
 		// Reading Commands and decoding
-		netData, err := proto.Decode(reader)
+		netData, err := proto.Decode(c_conn.reader)
 		if err != nil {
 			log.Error(err)
 			return
 		}
 
-		log.Debugf("%#v\n", netData)
+		request := proto.ParseCommand(netData)
+		log.Debugf("REQEUST -> %#v", request)
+
+		log.Debugf("Full command %#v\n", netData)
 		// log.Debugln(netData)
 
 		if netData == "STOP" || netData == "QUIT" {
 			return
 		}
+		log.Debugf("%T\n", netData)
 
-		// Parsing Array of commands
-		params, ok := netData.([]interface{})
 		var result interface{}
-		if ok {
-			aString := make([]string, len(params))
-			for i, v := range params {
-				aString[i] = v.(string)
-			}
-			log.Debug("Command Length: " + strconv.Itoa(len(aString)))
-
-			result = c_conn.processCommands(aString)
-		} else {
-			// Parsing simple commands
-			if params, ok := netData.(string); ok {
-				result = c_conn.processCommand(params)
-			} else {
-				result = ""
-			}
-		}
-		str_result, ok := result.(string)
-		var nil_resp bool
-		if ok && 0 < len(str_result) {
-			conn.Write([]byte(proto.EncodeString(str_result)))
-			nil_resp = false
-		} else {
-			num_result, ok := result.(int)
-			if ok {
-				conn.Write([]byte(proto.EncodeInt(int64(num_result))))
-				nil_resp = false
-			}
+		switch netData.(type) {
+		case []interface{}:
+			// Parsing Array of commands
+			result = c_conn.processCommands(proto.ConvertInterfaceArrToStringArr(netData))
+		case interface{}:
+			result = c_conn.processCommand(netData.(string))
+		default:
+			result = nil
 		}
 
-		if nil_resp {
-			conn.Write([]byte(proto.EncodeNull()))
-		}
+		c_conn.resultHandler(result)
 	}
 }
 
 // This method associated with Client connection
 func (s *ClientConnection) processCommands(args []string) (result interface{}) {
+	log.Debug("Command Length: " + strconv.Itoa(len(args)))
 	cmd := strings.ToUpper(args[0])
-	log.Debugf("%#v", cmd)
+	log.Debugf("COMMAND -> %#v", cmd)
 	switch cmd {
 	case "PING":
 		result = "PONG"
@@ -131,18 +114,38 @@ func (s *ClientConnection) processCommands(args []string) (result interface{}) {
 		key := args[1]
 		result = s.cache.Exists(key)
 	default:
-		result = "Command Not Found"
+		result = nil
 	}
 	return
 }
 
-func (s *ClientConnection) processCommand(cmd string) string {
-	if "PING" == cmd {
+func (s *ClientConnection) processCommand(cmd string) interface{} {
+	cmds := strings.Split(cmd, " ")
+	if 1 > len(cmds) {
+		return s.processCommands(cmds)
+	} else if "PING" == cmd {
 		return "PONG"
 	}
-	return "commandProcessor(cmd)"
+	return commandProcessor()
 }
 
 func commandProcessor() string {
 	return "SUCCESS"
+}
+
+func (s *ClientConnection) resultHandler(result interface{}) {
+	// Handling string, int, array(set) and hash resposes
+
+	log.Debugf("Result  -> %#v\n", result)
+	switch result.(type) {
+	case int:
+		num_result := result.(int)
+		s.conn.Write([]byte(proto.EncodeInt(int64(num_result))))
+	case string:
+		str_result := result.(string)
+		s.conn.Write([]byte(proto.EncodeString(str_result)))
+	default:
+		// Write nil as response
+		s.conn.Write([]byte(proto.EncodeNull()))
+	}
 }
