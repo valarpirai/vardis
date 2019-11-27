@@ -1,5 +1,13 @@
 package cache
 
+import (
+	"bufio"
+	"strconv"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/valarpirai/vardis/proto"
+)
+
 type CacheStorage struct {
 	store map[string]string
 }
@@ -15,6 +23,19 @@ func NewCache() (ca *CacheStorage) {
 	ca = new(CacheStorage)
 	ca.store = make(map[string]string)
 	return ca
+}
+
+func (c *CacheStorage) LoadFromDisk(p *Persistance) {
+	reader := bufio.NewReader(p.aofFile)
+	for {
+		netData, _, err := proto.Decode(reader)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		request := proto.ParseCommand(netData)
+		c.ProcessCommands(request)
+	}
 }
 
 func (c *CacheStorage) Set(key string, val string) string {
@@ -34,4 +55,28 @@ func (c *CacheStorage) Exists(key string) int {
 		return 1
 	}
 	return 0
+}
+
+func (cache *CacheStorage) ProcessCommands(req proto.RequestInterface) (result interface{}) {
+	log.Debug("Command Length: " + strconv.Itoa(req.CommandLength()))
+	log.Debugf("COMMAND -> %#v", req.Command())
+	switch req.Command() {
+	case "PING":
+		result = "PONG"
+	case "SET":
+		key, val := req.Key(), req.Value()
+		result = cache.Set(key, val)
+	case "GET":
+		key := req.Key()
+		res, ok := cache.Get(key)
+		if ok {
+			result = res
+		}
+	case "EXISTS":
+		key := req.Key()
+		result = cache.Exists(key)
+	default:
+		result = nil
+	}
+	return
 }

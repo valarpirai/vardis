@@ -1,10 +1,9 @@
-package main
+package connection
 
 import (
 	"bufio"
 	"fmt"
 	"net"
-	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/valarpirai/vardis/cache"
@@ -14,20 +13,24 @@ import (
 const MAX_DB_COUNT = 15
 
 type Server struct {
-	PORT  uint16
-	cache [MAX_DB_COUNT]*cache.CacheStorage
+	PORT        uint16
+	cache       [MAX_DB_COUNT]*cache.CacheStorage
+	persistance *cache.Persistance
 }
 
 type ClientConnection struct {
-	conn   net.Conn
-	cache  *cache.CacheStorage
-	reader *bufio.Reader
+	conn    net.Conn
+	cache   *cache.CacheStorage
+	reader  *bufio.Reader
+	storage *cache.Persistance
 }
 
 // NewServer
-func NewServer(port uint16) *Server {
+func NewServer(port uint16, cacheStore *cache.CacheStorage, persistant *cache.Persistance) *Server {
 	server := new(Server)
 	server.PORT = port
+	server.cache[0] = cacheStore
+	server.persistance = persistant
 	return server
 }
 
@@ -50,16 +53,17 @@ func (s *Server) Start() {
 		cc.conn = connection
 		cc.cache = s.cache[0]
 		cc.reader = bufio.NewReader(connection)
-		go s.handleConnection(cc)
+		go s.handleConnection(cc, s.persistance)
 	}
 }
 
-func (s *Server) handleConnection(c_conn *ClientConnection) {
+func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.Persistance) {
 	conn := c_conn.conn
 	defer conn.Close()
 	log.Infof("Serving client: %s\n", conn.RemoteAddr().String())
 	for {
 		// Reading Commands and decoding
+		// Parse RAW commands properly
 		netData, rawCmd, err := proto.Decode(c_conn.reader)
 		if err != nil {
 			log.Error(err)
@@ -68,19 +72,21 @@ func (s *Server) handleConnection(c_conn *ClientConnection) {
 
 		request := proto.ParseCommand(netData)
 		request.SetRawCommand(rawCmd)
-		log.Debugf("REQEUST -> %#v", request)
+		log.Debugf("REQEUST -> %#v\n", request)
+		// log.Debugf("RAW -> %#v", rawCmd)
 
 		log.Debugf("Full command %#v\n", netData)
 		// log.Debugln(netData)
+		// log.Debugf("%T\n", netData)
 
 		if netData == "STOP" || netData == "QUIT" {
 			return
 		}
-		log.Debugf("%T\n", netData)
 
 		if !request.Error() {
-			result := c_conn.processCommands(request)
+			result := c_conn.cache.ProcessCommands(request)
 			c_conn.resultHandler(result)
+			persistance.WriteCommand(request.String())
 		} else {
 			c_conn.resultHandler(nil)
 		}
@@ -88,29 +94,9 @@ func (s *Server) handleConnection(c_conn *ClientConnection) {
 }
 
 // This method associated with Client connection
-func (s *ClientConnection) processCommands(req proto.RequestInterface) (result interface{}) {
-	log.Debug("Command Length: " + strconv.Itoa(req.CommandLength()))
-	log.Debugf("COMMAND -> %#v", req.Command())
-	switch req.Command() {
-	case "PING":
-		result = "PONG"
-	case "SET":
-		key, val := req.Key(), req.Value()
-		result = s.cache.Set(key, val)
-	case "GET":
-		key := req.Key()
-		res, ok := s.cache.Get(key)
-		if ok {
-			result = res
-		}
-	case "EXISTS":
-		key := req.Key()
-		result = s.cache.Exists(key)
-	default:
-		result = nil
-	}
-	return
-}
+// func (s *ClientConnection) processCommands(req proto.RequestInterface) (result interface{}) {
+// 	return s.cache.ProcessCommands(req)
+// }
 
 func (s *ClientConnection) resultHandler(result interface{}) {
 	// Handling string, int, array(set) and hash resposes
