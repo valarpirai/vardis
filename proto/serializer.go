@@ -204,7 +204,7 @@ func Decode(reader *bufio.Reader) (result interface{}, rawCmd string, err error)
 			return
 		}
 		result = string(buff[:length])
-		rawCmd += string(buff[:length+2])
+		rawCmd += string(buff)
 	case typeArrays:
 		var length int
 		length, err = strconv.Atoi(line)

@@ -38,7 +38,9 @@ func main() {
 func NewApp() {
 	cacheStore := cache.NewCache()
 	persistant := cache.NewStorage()
-	cacheStore.LoadFromDisk(persistant)
+
+	log.Info("Loading data from disk")
+	go cacheStore.LoadFromDisk(persistant)
 	cacheStore.Exists("Test")
 
 	server := connection.NewServer(PORT, cacheStore, persistant)

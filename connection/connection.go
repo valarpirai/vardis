@@ -93,15 +93,11 @@ func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.P
 	}
 }
 
-// This method associated with Client connection
-// func (s *ClientConnection) processCommands(req proto.RequestInterface) (result interface{}) {
-// 	return s.cache.ProcessCommands(req)
-// }
-
 func (s *ClientConnection) resultHandler(result interface{}) {
 	// Handling string, int, array(set) and hash resposes
 
 	log.Debugf("Result  -> %#v\n", result)
+	// log.Debugf("Result Type  -> %T\n", result)
 	switch result.(type) {
 	case int:
 		num_result := result.(int)
@@ -109,6 +105,13 @@ func (s *ClientConnection) resultHandler(result interface{}) {
 	case string:
 		str_result := result.(string)
 		s.conn.Write([]byte(proto.EncodeString(str_result)))
+	case []string:
+		aInterface := result.([]string)
+		aString := make([][]byte, len(aInterface))
+		for i, v := range aInterface {
+			aString[i] = proto.EncodeBulkString(v)
+		}
+		s.conn.Write([]byte(proto.EncodeArray(aString)))
 	default:
 		// Write nil as response
 		s.conn.Write([]byte(proto.EncodeNull()))

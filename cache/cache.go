@@ -2,6 +2,7 @@ package cache
 
 import (
 	"bufio"
+	"regexp"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
@@ -26,6 +27,8 @@ func NewCache() (ca *CacheStorage) {
 }
 
 func (c *CacheStorage) LoadFromDisk(p *Persistance) {
+	log.SetLevel(log.WarnLevel)
+	defer log.SetLevel(log.DebugLevel)
 	reader := bufio.NewReader(p.aofFile)
 	for {
 		netData, _, err := proto.Decode(reader)
@@ -75,6 +78,15 @@ func (cache *CacheStorage) ProcessCommands(req proto.RequestInterface) (result i
 	case "EXISTS":
 		key := req.Key()
 		result = cache.Exists(key)
+	case "KEYS":
+		r, _ := regexp.Compile(req.Key())
+		keys := make([]string, 0, len(cache.store))
+		for k := range cache.store {
+			if r.MatchString(k) {
+				keys = append(keys, k)
+			}
+		}
+		result = keys
 	default:
 		result = nil
 	}
