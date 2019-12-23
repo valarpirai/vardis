@@ -1,7 +1,6 @@
 {
-    "keys":  ["string", "connection", "server", "list", "sorted_set", "cluster", "generic", "transactions", "scripting", "geo", "hash", "hyperloglog", "pubsub", "set", "stream"],
-	"string": [
-    {
+	"keys": ["string", "connection", "server", "list", "sorted_set", "cluster", "generic", "transactions", "scripting", "geo", "hash", "hyperloglog", "pubsub", "set", "stream"],
+	"string": [{
 		"group": "string",
 		"name": "APPEND",
 		"args": " key value ",
@@ -379,8 +378,7 @@
 		"args": " ",
 		"summary": "Return the current server time"
 	}],
-	"list": [
-        {
+	"list": [{
 		"group": "list",
 		"name": "BLPOP",
 		"args": " key [key ...] timeout ",
@@ -466,8 +464,7 @@
 		"args": " key element [element ...] ",
 		"summary": "Append an element to a list, only if the list exists"
 	}],
-	"sorted_set": [
-        {
+	"sorted_set": [{
 		"group": "sorted_set",
 		"name": "BZPOPMIN",
 		"args": " key [key ...] timeout ",

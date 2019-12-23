@@ -10,7 +10,7 @@ import (
 )
 
 type CacheStorage struct {
-	store map[string]string
+	store map[string]interface{}
 }
 
 type Cache interface {
@@ -19,10 +19,10 @@ type Cache interface {
 	Exists(string) string
 }
 
-// New Initialize inmemory cache store
+// New Initialize in-memory cache store
 func NewCache() (ca *CacheStorage) {
 	ca = new(CacheStorage)
-	ca.store = make(map[string]string)
+	ca.store = make(map[string]interface{})
 	return ca
 }
 
@@ -34,11 +34,12 @@ func (c *CacheStorage) LoadFromDisk(p *Persistance) {
 		netData, _, err := proto.Decode(reader)
 		if err != nil {
 			log.Error(err)
-			return
+			break
 		}
 		request := proto.ParseCommand(netData)
 		c.ProcessCommands(request)
 	}
+	log.Warn("Data Loaded successfully")
 }
 
 func (c *CacheStorage) Set(key string, val string) string {
@@ -48,7 +49,7 @@ func (c *CacheStorage) Set(key string, val string) string {
 
 func (c *CacheStorage) Get(key string) (string, bool) {
 	if val, ok := c.store[key]; ok {
-		return val, true
+		return val.(string), true
 	}
 	return "", false
 }

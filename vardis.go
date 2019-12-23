@@ -9,11 +9,10 @@ import (
 	"github.com/valarpirai/vardis/connection"
 )
 
-type App struct {
-	server connection.Server
+type VardisApp struct {
+	server *connection.Server
+	PORT   uint16
 }
-
-var PORT uint16
 
 func main() {
 	confgureApp()
@@ -22,20 +21,22 @@ func main() {
 	arguments := os.Args
 	log.Debugln("Arguments...")
 	log.Debugln(arguments)
+
+	app := new(VardisApp)
 	if len(arguments) > 1 {
 		port, err := strconv.ParseUint(arguments[1], 10, 16)
 		if nil == err {
-			PORT = uint16(port)
+			app.PORT = uint16(port)
 		}
 	}
-	if 0 == PORT {
-		PORT = 6379
+	if 0 == app.PORT {
+		app.PORT = 6379
 	}
 
-	NewApp()
+	NewApp(app)
 }
 
-func NewApp() {
+func NewApp(app *VardisApp) {
 	cacheStore := cache.NewCache()
 	persistant := cache.NewStorage()
 
@@ -43,8 +44,8 @@ func NewApp() {
 	go cacheStore.LoadFromDisk(persistant)
 	cacheStore.Exists("Test")
 
-	server := connection.NewServer(PORT, cacheStore, persistant)
-	server.Start()
+	app.server = connection.NewServer(app.PORT, cacheStore, persistant)
+	app.server.Start()
 }
 
 func confgureApp() {

@@ -13,3 +13,4 @@
 *.aof
 
 .vscode/
+vendor/

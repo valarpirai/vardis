@@ -5,4 +5,4 @@ A redis protocol compatible key-value server.
 
 ## Usage
  Start server on TCP PORT 6379
- `go run main.go`
+ `go run vardis.go`
