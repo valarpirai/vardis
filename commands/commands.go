@@ -1007,33 +1007,33 @@ func populateCommandTableParseFlags(c *RedisCommand, flags string) error {
 
 	for j := 0; j < len(argv); j++ {
 		flag := argv[j]
-		if !strings.EqualFold(flag, "write") {
+		if strings.EqualFold(flag, "write") {
 			c.flags |= CMD_WRITE
-		} else if !strings.EqualFold(flag, "read-only") {
+		} else if strings.EqualFold(flag, "read-only") {
 			c.flags |= CMD_READONLY
-		} else if !strings.EqualFold(flag, "use-memory") {
+		} else if strings.EqualFold(flag, "use-memory") {
 			c.flags |= CMD_DENYOOM
-		} else if !strings.EqualFold(flag, "admin") {
+		} else if strings.EqualFold(flag, "admin") {
 			c.flags |= CMD_ADMIN
-		} else if !strings.EqualFold(flag, "pub-sub") {
+		} else if strings.EqualFold(flag, "pub-sub") {
 			c.flags |= CMD_PUBSUB
-		} else if !strings.EqualFold(flag, "no-script") {
+		} else if strings.EqualFold(flag, "no-script") {
 			c.flags |= CMD_NOSCRIPT
-		} else if !strings.EqualFold(flag, "random") {
+		} else if strings.EqualFold(flag, "random") {
 			c.flags |= CMD_RANDOM
-		} else if !strings.EqualFold(flag, "to-sort") {
+		} else if strings.EqualFold(flag, "to-sort") {
 			c.flags |= CMD_SORT_FOR_SCRIPT
-		} else if !strings.EqualFold(flag, "ok-loading") {
+		} else if strings.EqualFold(flag, "ok-loading") {
 			c.flags |= CMD_LOADING
-		} else if !strings.EqualFold(flag, "ok-stale") {
+		} else if strings.EqualFold(flag, "ok-stale") {
 			c.flags |= CMD_STALE
-		} else if !strings.EqualFold(flag, "no-monitor") {
+		} else if strings.EqualFold(flag, "no-monitor") {
 			c.flags |= CMD_SKIP_MONITOR
-		} else if !strings.EqualFold(flag, "no-slowlog") {
+		} else if strings.EqualFold(flag, "no-slowlog") {
 			c.flags |= CMD_SKIP_SLOWLOG
-		} else if !strings.EqualFold(flag, "cluster-asking") {
+		} else if strings.EqualFold(flag, "cluster-asking") {
 			c.flags |= CMD_ASKING
-		} else if !strings.EqualFold(flag, "fast") {
+		} else if strings.EqualFold(flag, "fast") {
 			c.flags |= CMD_FAST
 		}
 	}
@@ -1050,7 +1050,6 @@ func PopulateCommandTable() map[string]*RedisCommand {
 
 	for j := 0; j < numcommands; j++ {
 		c := redisCommandTable[j]
-		fmt.Println(c)
 		if populateCommandTableParseFlags(c, c.sflags) != nil {
 			panic("Unsupported command flag")
 		}
@@ -1060,6 +1059,5 @@ func PopulateCommandTable() map[string]*RedisCommand {
 }
 
 func (cmd *RedisCommand) Writable() bool {
-	fmt.Println(cmd)
-	return CMD_WRITE == cmd.flags&CMD_WRITE
+	return CMD_WRITE == (cmd.flags & CMD_WRITE)
 }

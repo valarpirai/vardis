@@ -46,7 +46,7 @@ func (s *Server) Start() {
 	}
 	defer l.Close()
 
-	log.Infof("Started echo server on port: %d\n", s.PORT)
+	log.Infof("Started vardis server on port: %d\n", s.PORT)
 	for {
 		connection, err := l.Accept()
 		if err != nil {

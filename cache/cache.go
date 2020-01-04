@@ -56,29 +56,3 @@ func (c *CacheStorage) Keys(pattern string) []string {
 	}
 	return keys
 }
-
-// func (cache *CacheStorage) ProcessCommands(req proto.RequestInterface) (result interface{}) {
-// 	log.Debug("Command Length: " + strconv.Itoa(req.CommandLength()))
-// 	log.Debugf("COMMAND -> %#v", req.Command())
-// 	switch req.Command() {
-// 	case "PING":
-// 		result = "PONG"
-// 	case "SET":
-// 		key, val := req.Key(), req.Value()
-// 		result = cache.Set(key, val)
-// 	case "GET":
-// 		key := req.Key()
-// 		res, ok := cache.Get(key)
-// 		if ok {
-// 			result = res
-// 		}
-// 	case "EXISTS":
-// 		key := req.Key()
-// 		result = cache.Exists(key)
-// 	case "KEYS":
-// 		result = cache.Keys(req.Key())
-// 	default:
-// 		result = nil
-// 	}
-// 	return
-// }

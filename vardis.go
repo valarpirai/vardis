@@ -43,10 +43,11 @@ func NewApp(app *VardisApp) {
 	log.Info("Loading data from disk")
 
 	app.server = connection.NewServer(app.PORT, cacheStore, persistant)
-	app.server.Start()
 
 	go app.server.LoadFromDisk()
 	cacheStore.Exists("Test")
+
+	app.server.Start()
 }
 
 func confgureApp() {
