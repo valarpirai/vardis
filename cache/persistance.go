@@ -14,7 +14,7 @@ import (
 // Read and load the file on startup
 type Persistance struct {
 	flushInterval time.Duration
-	aofFile       *os.File
+	AofFile       *os.File
 }
 
 // Initialize Persistant store
@@ -26,7 +26,7 @@ func NewStorage() *Persistance {
 	if err != nil {
 		log.Error(err)
 	}
-	persist.aofFile = f
+	persist.AofFile = f
 	go persist.flush()
 	return persist
 }
@@ -34,14 +34,14 @@ func NewStorage() *Persistance {
 func (p *Persistance) flush() {
 	// File sync
 	time.Sleep(p.flushInterval * time.Second)
-	p.aofFile.Sync()
+	p.AofFile.Sync()
 	p.flush()
 }
 
 func (p *Persistance) WriteCommand(cmd string) {
-	p.aofFile.WriteString(cmd)
+	p.AofFile.WriteString(cmd)
 }
 
 func (p *Persistance) Reader() *bufio.Reader {
-	return bufio.NewReader(p.aofFile)
+	return bufio.NewReader(p.AofFile)
 }

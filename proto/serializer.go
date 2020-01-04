@@ -254,7 +254,7 @@ func ParseCommand(cmd interface{}) *Request {
 		} else {
 			request.cmd = args[0]
 		}
-		request.cmd = strings.ToUpper(request.cmd)
+		request.cmd = strings.ToLower(request.cmd)
 	}
 	return request
 }

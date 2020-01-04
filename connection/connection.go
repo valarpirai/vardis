@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/valarpirai/vardis/cache"
+	"github.com/valarpirai/vardis/commands"
 	"github.com/valarpirai/vardis/proto"
 )
 
@@ -16,6 +18,7 @@ type Server struct {
 	PORT        uint16
 	cache       [MAX_DB_COUNT]*cache.CacheStorage
 	persistance *cache.Persistance
+	commandMap  map[string]*commands.RedisCommand
 }
 
 type ClientConnection struct {
@@ -31,6 +34,7 @@ func NewServer(port uint16, cacheStore *cache.CacheStorage, persistant *cache.Pe
 	server.PORT = port
 	server.cache[0] = cacheStore
 	server.persistance = persistant
+	server.commandMap = commands.PopulateCommandTable()
 	return server
 }
 
@@ -84,13 +88,25 @@ func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.P
 		}
 
 		if !request.Error() {
-			result := c_conn.cache.ProcessCommands(request)
+			// result := c_conn.cache.ProcessCommands(request)
+			result := s.ProcessCommands(request, c_conn.cache)
 			c_conn.resultHandler(result)
-			persistance.WriteCommand(request.String())
 		} else {
 			c_conn.resultHandler(nil)
 		}
 	}
+}
+
+func (s *Server) ProcessCommands(req *proto.Request, cache *cache.CacheStorage) (result interface{}) {
+	log.Debug("Command Length: " + strconv.Itoa(req.CommandLength()))
+	log.Debugf("COMMAND -> %#v", req.Command())
+
+	redisCmd := s.commandMap[req.Command()]
+	if redisCmd.Writable() == true {
+		s.persistance.WriteCommand(req.String())
+	}
+
+	return redisCmd.Proc(req, cache)
 }
 
 func (s *ClientConnection) resultHandler(result interface{}) {
@@ -116,4 +132,20 @@ func (s *ClientConnection) resultHandler(result interface{}) {
 		// Write nil as response
 		s.conn.Write([]byte(proto.EncodeNull()))
 	}
+}
+
+func (server *Server) LoadFromDisk() {
+	log.SetLevel(log.WarnLevel)
+	defer log.SetLevel(log.DebugLevel)
+	reader := bufio.NewReader(server.persistance.AofFile)
+	for {
+		netData, _, err := proto.Decode(reader)
+		if err != nil {
+			log.Error(err)
+			break
+		}
+		request := proto.ParseCommand(netData)
+		server.ProcessCommands(request, server.cache[0])
+	}
+	log.Warn("Data Loaded successfully")
 }

@@ -41,11 +41,12 @@ func NewApp(app *VardisApp) {
 	persistant := cache.NewStorage()
 
 	log.Info("Loading data from disk")
-	go cacheStore.LoadFromDisk(persistant)
-	cacheStore.Exists("Test")
 
 	app.server = connection.NewServer(app.PORT, cacheStore, persistant)
 	app.server.Start()
+
+	go app.server.LoadFromDisk()
+	cacheStore.Exists("Test")
 }
 
 func confgureApp() {
@@ -56,11 +57,4 @@ func confgureApp() {
 
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
-}
-
-func CheckErrorAndReturnDefault(default_value interface{}, err error) interface{} {
-	if nil == err {
-		return default_value
-	}
-	return nil
 }
