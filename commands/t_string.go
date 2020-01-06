@@ -5,6 +5,14 @@ import (
 	"github.com/valarpirai/vardis/proto"
 )
 
+func genericGet(key string) {
+
+}
+
+func genericeSet(key string, value string) {
+
+}
+
 // String command implementation
 func getCommand(req *proto.Request, cache *cache.CacheStorage) (result interface{}) {
 	res, ok := cache.Get(req.Key())
@@ -13,6 +21,8 @@ func getCommand(req *proto.Request, cache *cache.CacheStorage) (result interface
 	}
 	return result
 }
+
+/* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 func setCommand(req *proto.Request, cache *cache.CacheStorage) (result interface{}) {
 	key, val := req.Key(), req.Value()
 	result = cache.Set(key, val)
