@@ -8,7 +8,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/valarpirai/vardis/cache"
-	"github.com/valarpirai/vardis/commands"
 	"github.com/valarpirai/vardis/proto"
 )
 
@@ -18,7 +17,7 @@ type Server struct {
 	PORT        uint16
 	cache       [MAX_DB_COUNT]*cache.CacheStorage
 	persistance *cache.Persistance
-	commandMap  map[string]*commands.RedisCommand
+	commandMap  map[string]*RedisCommand
 }
 
 type ClientConnection struct {
@@ -34,7 +33,7 @@ func NewServer(port uint16, cacheStore *cache.CacheStorage, persistant *cache.Pe
 	server.PORT = port
 	server.cache[0] = cacheStore
 	server.persistance = persistant
-	server.commandMap = commands.PopulateCommandTable()
+	server.commandMap = PopulateCommandTable()
 	return server
 }
 
@@ -89,7 +88,7 @@ func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.P
 
 		if !request.Error() {
 			// result := c_conn.cache.ProcessCommands(request)
-			result := s.ProcessCommands(request, c_conn.cache)
+			result := s.ProcessCommands(request, c_conn)
 			c_conn.resultHandler(result)
 		} else {
 			c_conn.resultHandler(nil)
@@ -97,7 +96,7 @@ func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.P
 	}
 }
 
-func (s *Server) ProcessCommands(req *proto.Request, cache *cache.CacheStorage) (result interface{}) {
+func (s *Server) ProcessCommands(req *proto.Request, conn *ClientConnection) (result interface{}) {
 	log.Debug("Command Length: " + strconv.Itoa(req.CommandLength()))
 	log.Debugf("COMMAND -> %#v", req.Command())
 
@@ -106,7 +105,7 @@ func (s *Server) ProcessCommands(req *proto.Request, cache *cache.CacheStorage) 
 		s.persistance.WriteCommand(req.String())
 	}
 
-	return redisCmd.Proc(req, cache)
+	return redisCmd.Proc(req, conn)
 }
 
 func (s *ClientConnection) resultHandler(result interface{}) {
@@ -138,6 +137,8 @@ func (server *Server) LoadFromDisk() {
 	log.SetLevel(log.WarnLevel)
 	defer log.SetLevel(log.DebugLevel)
 	reader := bufio.NewReader(server.persistance.AofFile)
+	cc := new(ClientConnection)
+	cc.cache = server.cache[0]
 	for {
 		netData, _, err := proto.Decode(reader)
 		if err != nil {
@@ -145,7 +146,7 @@ func (server *Server) LoadFromDisk() {
 			break
 		}
 		request := proto.ParseCommand(netData)
-		server.ProcessCommands(request, server.cache[0])
+		server.ProcessCommands(request, cc)
 	}
 	log.Warn("Data Loaded successfully")
 }
