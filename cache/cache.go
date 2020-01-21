@@ -25,13 +25,13 @@ type Cache interface {
 }
 
 type ICacheStorage interface {
-	Store()
+	Store() map[string]*CacheData
 }
 
 type ICacheData interface {
-	Value()
-	Expires()
-	Type()
+	Value() interface{}
+	Expires() uint64
+	Type() uint8
 }
 
 // New Initialize in-memory cache store
@@ -77,4 +77,14 @@ func (c *CacheStorage) Keys(pattern string) []string {
 		}
 	}
 	return keys
+}
+
+func (c *CacheData) Value() interface{} {
+	return c.val
+}
+func (c *CacheData) Expires() uint64 {
+	return c.exp
+}
+func (c *CacheData) Type() uint8 {
+	return c.dataType
 }

@@ -21,7 +21,7 @@ type Server struct {
 }
 
 type ClientConnection struct {
-	conn    net.Conn
+	cconn   net.Conn
 	cache   *cache.CacheStorage
 	reader  *bufio.Reader
 	storage *cache.Persistance
@@ -53,7 +53,7 @@ func (s *Server) Start() {
 			return
 		}
 		cc := new(ClientConnection)
-		cc.conn = connection
+		cc.cconn = connection
 		cc.cache = s.cache[0]
 		cc.reader = bufio.NewReader(connection)
 		go s.handleConnection(cc, s.persistance)
@@ -61,7 +61,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.Persistance) {
-	conn := c_conn.conn
+	conn := c_conn.cconn
 	defer conn.Close()
 	log.Infof("Serving client: %s\n", conn.RemoteAddr().String())
 	for {
@@ -88,8 +88,8 @@ func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.P
 
 		if !request.Error() {
 			// result := c_conn.cache.ProcessCommands(request)
-			result := s.ProcessCommands(request, c_conn)
-			c_conn.resultHandler(result)
+			_ = s.ProcessCommands(request, c_conn)
+			// c_conn.resultHandler(result)
 		} else {
 			c_conn.resultHandler(nil)
 		}
@@ -116,20 +116,20 @@ func (s *ClientConnection) resultHandler(result interface{}) {
 	switch result.(type) {
 	case int:
 		num_result := result.(int)
-		s.conn.Write([]byte(proto.EncodeInt(int64(num_result))))
+		s.cconn.Write([]byte(proto.EncodeInt(int64(num_result))))
 	case string:
 		str_result := result.(string)
-		s.conn.Write([]byte(proto.EncodeString(str_result)))
+		s.cconn.Write([]byte(proto.EncodeString(str_result)))
 	case []string:
 		aInterface := result.([]string)
 		aString := make([][]byte, len(aInterface))
 		for i, v := range aInterface {
 			aString[i] = proto.EncodeBulkString(v)
 		}
-		s.conn.Write([]byte(proto.EncodeArray(aString)))
+		s.cconn.Write([]byte(proto.EncodeArray(aString)))
 	default:
 		// Write nil as response
-		s.conn.Write([]byte(proto.EncodeNull()))
+		s.cconn.Write([]byte(proto.EncodeNull()))
 	}
 }
 

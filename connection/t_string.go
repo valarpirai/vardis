@@ -1,6 +1,9 @@
 package connection
 
 import (
+	"time"
+
+	"github.com/valarpirai/vardis/cache"
 	"github.com/valarpirai/vardis/proto"
 )
 
@@ -31,17 +34,62 @@ import (
 // "-NOREPLICAS Not enough good replicas to write.\r\n"
 // "-BUSYKEY Target key name already exists.\r\n"
 
-func genericGet(key string) {
+func genericGet(key string, conn *ClientConnection) {
 	// Check key exists
-	//
 	// Expire if needed, don't delete key and return nil
-	// If string or other object
+	data := expireIfNeeded(key, conn.cache)
+	if data == nil {
+		addReply(conn, nil)
+	}
 
+	addReply(conn, data)
+	// If string or other object
 	// To avoid additional memory allocation
 	// Don't construct full response,
 	// just write the response bytes to Connection
 
 	// Reduce memory allocation and GC as much as possible
+}
+
+func expireIfNeeded(key string, db cache.ICacheStorage) cache.ICacheData {
+	store := db.Store()
+	if data, ok := store[key]; ok {
+
+		if 0 == data.Expires() || timestampNow() < data.Expires() {
+			return data
+		}
+	}
+	return nil
+}
+
+func timestampNow() uint64 {
+	return uint64(time.Now().UnixNano() / int64(time.Millisecond))
+}
+
+func addReply(c *ClientConnection, reply cache.ICacheData) {
+	if nil == c.cconn {
+		return
+	}
+	if nil != reply {
+		switch reply.Type() {
+		case cache.OBJ_STRING:
+			str_result := reply.Value().(string)
+			c.cconn.Write(proto.EncodeString(str_result))
+		case cache.OBJ_LIST:
+			aInterface := reply.Value().([]string)
+			aString := make([][]byte, len(aInterface))
+			for i, v := range aInterface {
+				aString[i] = proto.EncodeBulkString(v)
+			}
+			c.cconn.Write(proto.EncodeArray(aString))
+		case cache.OBJ_SET:
+		case cache.OBJ_ZSET:
+		case cache.OBJ_HASH:
+		}
+	} else {
+		c.cconn.Write(proto.EncodeNull())
+	}
+
 }
 
 func genericeSet(key string, value string) {
@@ -50,12 +98,13 @@ func genericeSet(key string, value string) {
 }
 
 // String command implementation
-func getCommand(req *proto.Request, conn *ClientConnection) (result interface{}) {
+func getCommand(req *proto.Request, conn *ClientConnection) interface{} {
+	genericGet(req.Key(), conn)
 	res, ok := conn.cache.Get(req.Key())
 	if ok {
-		result = res
+		res = res
 	}
-	return result
+	return res
 }
 
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
