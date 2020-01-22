@@ -88,7 +88,7 @@ func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.P
 
 		if !request.Error() {
 			// result := c_conn.cache.ProcessCommands(request)
-			_ = s.ProcessCommands(request, c_conn)
+			s.ProcessCommands(request, c_conn)
 			// c_conn.resultHandler(result)
 		} else {
 			c_conn.resultHandler(nil)
@@ -96,16 +96,21 @@ func (s *Server) handleConnection(c_conn *ClientConnection, persistance *cache.P
 	}
 }
 
-func (s *Server) ProcessCommands(req *proto.Request, conn *ClientConnection) (result interface{}) {
+func (s *Server) ProcessCommands(req *proto.Request, conn *ClientConnection) {
 	log.Debug("Command Length: " + strconv.Itoa(req.CommandLength()))
 	log.Debugf("COMMAND -> %#v", req.Command())
 
 	redisCmd := s.commandMap[req.Command()]
+	if nil == redisCmd {
+		// Unknown command
+		conn.cconn.Write(proto.EncodeError(fmt.Sprintf("unknown command `%s`", req.Command())))
+		return
+	}
 	if redisCmd.Writable() == true {
 		s.persistance.WriteCommand(req.String())
 	}
 
-	return redisCmd.Proc(req, conn)
+	redisCmd.Proc(req, conn)
 }
 
 func (s *ClientConnection) resultHandler(result interface{}) {

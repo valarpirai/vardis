@@ -140,7 +140,7 @@ type RedisCommand struct {
 	   bit set in the bitmap of allowed commands. */
 }
 
-type redisCommandProc func(req *proto.Request, conn *ClientConnection) (result interface{})
+type redisCommandProc func(req *proto.Request, conn *ClientConnection)
 type redisGetKeysProc func(cmd *RedisCommand, argc int, numkeys int)
 
 var redisCommandTable = []*RedisCommand{

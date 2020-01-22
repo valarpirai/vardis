@@ -17,7 +17,7 @@ import (
 // Data types and constants
 const (
 	typeSimpleStrings = "+"
-	typeErrors        = "-"
+	typeErrors        = "-ERR "
 	typeIntegers      = ":"
 	typeBulkStrings   = "$"
 	typeArrays        = "*"
@@ -159,6 +159,7 @@ func EncodeArray(s [][]byte) []byte {
 }
 
 // Decode decode from reader
+// Add support for \n delimitter
 func Decode(reader *bufio.Reader) (result interface{}, rawCmd string, err error) {
 	line, err := reader.ReadString('\n')
 	if err != nil {
@@ -170,12 +171,16 @@ func Decode(reader *bufio.Reader) (result interface{}, rawCmd string, err error)
 		err = fmt.Errorf(`line is too short: %#v`, line)
 		return
 	}
-	if line[lineLen-2] != '\r' || line[lineLen-1] != '\n' {
+	if line[lineLen-1] != '\n' {
 		err = fmt.Errorf("invalid CRLF: %#v", line)
 		return
 	}
+	delimiter_len := 1
+	if line[lineLen-2] == '\r' {
+		delimiter_len = 2
+	}
 
-	msgType, line := string(line[0]), line[1:lineLen-2]
+	msgType, line := string(line[0]), line[1:lineLen-delimiter_len]
 	switch msgType {
 	case typeSimpleStrings:
 		result = line

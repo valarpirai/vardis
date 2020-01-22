@@ -54,7 +54,6 @@ func genericGet(key string, conn *ClientConnection) {
 func expireIfNeeded(key string, db cache.ICacheStorage) cache.ICacheData {
 	store := db.Store()
 	if data, ok := store[key]; ok {
-
 		if 0 == data.Expires() || timestampNow() < data.Expires() {
 			return data
 		}
@@ -74,7 +73,7 @@ func addReply(c *ClientConnection, reply cache.ICacheData) {
 		switch reply.Type() {
 		case cache.OBJ_STRING:
 			str_result := reply.Value().(string)
-			c.cconn.Write(proto.EncodeString(str_result))
+			WriteStringReply(c, str_result)
 		case cache.OBJ_LIST:
 			aInterface := reply.Value().([]string)
 			aString := make([][]byte, len(aInterface))
@@ -89,7 +88,10 @@ func addReply(c *ClientConnection, reply cache.ICacheData) {
 	} else {
 		c.cconn.Write(proto.EncodeNull())
 	}
+}
 
+func WriteStringReply(c *ClientConnection, msg string) {
+	c.cconn.Write(proto.EncodeString(msg))
 }
 
 func genericeSet(key string, value string) {
@@ -98,33 +100,24 @@ func genericeSet(key string, value string) {
 }
 
 // String command implementation
-func getCommand(req *proto.Request, conn *ClientConnection) interface{} {
+func getCommand(req *proto.Request, conn *ClientConnection) {
 	genericGet(req.Key(), conn)
-	res, ok := conn.cache.Get(req.Key())
-	if ok {
-		res = res
-	}
-	return res
 }
 
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
-func setCommand(req *proto.Request, conn *ClientConnection) (result interface{}) {
+func setCommand(req *proto.Request, conn *ClientConnection) {
 	key, val := req.Key(), req.Value()
-	result = conn.cache.Set(key, val)
-	return result
+	conn.cache.Set(key, val)
 }
-func delCommand(req *proto.Request, conn *ClientConnection) (result interface{}) {
-	return
+func delCommand(req *proto.Request, conn *ClientConnection) {
 }
-func keysCommand(req *proto.Request, conn *ClientConnection) (result interface{}) {
-	result = conn.cache.Keys(req.Key())
-	return
+func keysCommand(req *proto.Request, conn *ClientConnection) {
+	conn.cache.Keys(req.Key())
 }
-func existsCommand(req *proto.Request, conn *ClientConnection) (result interface{}) {
+func existsCommand(req *proto.Request, conn *ClientConnection) {
 	key := req.Key()
-	result = conn.cache.Exists(key)
-	return
+	conn.cache.Exists(key)
 }
-func pingCommand(req *proto.Request, conn *ClientConnection) (result interface{}) {
-	return "PONG"
+func pingCommand(req *proto.Request, conn *ClientConnection) {
+	WriteStringReply(conn, "PONG")
 }
