@@ -51,21 +51,17 @@ func genericGet(key string, conn *ClientConnection) {
 	// Reduce memory allocation and GC as much as possible
 }
 
-func expireIfNeeded(key string, db cache.ICacheStorage) cache.ICacheData {
+func expireIfNeeded(key string, db cache.ICacheStorage) *cache.CacheData {
 	store := db.Store()
 	if data, ok := store[key]; ok {
-		if 0 == data.Expires() || timestampNow() < data.Expires() {
+		if 0 == data.Expires() || time.Now().UnixNano() < data.Expires() {
 			return data
 		}
 	}
 	return nil
 }
 
-func timestampNow() uint64 {
-	return uint64(time.Now().UnixNano() / int64(time.Millisecond))
-}
-
-func addReply(c *ClientConnection, reply cache.ICacheData) {
+func addReply(c *ClientConnection, reply *cache.CacheData) {
 	if nil == c.cconn {
 		return
 	}
@@ -112,7 +108,10 @@ func setCommand(req *proto.Request, conn *ClientConnection) {
 func delCommand(req *proto.Request, conn *ClientConnection) {
 }
 func keysCommand(req *proto.Request, conn *ClientConnection) {
-	conn.cache.Keys(req.Key())
+	response := new(cache.CacheData)
+	response.SetValue(conn.cache.Keys(req.Key()))
+	response.SetType(cache.OBJ_LIST)
+	addReply(conn, response)
 }
 func existsCommand(req *proto.Request, conn *ClientConnection) {
 	key := req.Key()

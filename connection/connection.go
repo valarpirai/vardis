@@ -102,10 +102,12 @@ func (s *Server) ProcessCommands(req *proto.Request, conn *ClientConnection) {
 
 	redisCmd := s.commandMap[req.Command()]
 	if nil == redisCmd {
+		log.Infof("unknown command `%s`", req.Command())
 		// Unknown command
 		conn.cconn.Write(proto.EncodeError(fmt.Sprintf("unknown command `%s`", req.Command())))
 		return
 	}
+
 	if redisCmd.Writable() == true {
 		s.persistance.WriteCommand(req.String())
 	}

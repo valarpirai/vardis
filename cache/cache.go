@@ -15,7 +15,7 @@ type CacheStorage struct {
 }
 type CacheData struct {
 	val      interface{}
-	exp      uint64
+	exp      int64
 	dataType uint8
 }
 type Cache interface {
@@ -30,6 +30,7 @@ type ICacheStorage interface {
 
 type ICacheData interface {
 	Value() interface{}
+	SetValue(interface{})
 	Expires() uint64
 	Type() uint8
 }
@@ -82,9 +83,18 @@ func (c *CacheStorage) Keys(pattern string) []string {
 func (c *CacheData) Value() interface{} {
 	return c.val
 }
-func (c *CacheData) Expires() uint64 {
+func (c *CacheData) SetValue(val interface{}) {
+	c.val = val
+}
+func (c *CacheData) Expires() int64 {
 	return c.exp
+}
+func (c *CacheData) SetExpires(exp int64) {
+	c.exp = exp
 }
 func (c *CacheData) Type() uint8 {
 	return c.dataType
+}
+func (c *CacheData) SetType(dataType uint8) {
+	c.dataType = dataType
 }
